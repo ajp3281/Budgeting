@@ -4,12 +4,21 @@ from app.models import Income,Expenses,Category
 from marshmallow import Schema, fields, validate
 from datetime import datetime, date
 from marshmallow.exceptions import ValidationError
+from flask_jwt_extended import create_access_token
 
 def validate_date_range(value):
     min_date = date(2000, 1, 1)
     max_date = date.today()
     if value < min_date or value > max_date:
         raise ValidationError('Date must be between {} and {}'.format(min_date, max_date))
+
+class RegistrationSchema(Schema):
+    username = fields.Str(required=True, validate=validate.Length(min=5,max=50))
+    password = fields.Str(required=True, validate=validate.Length(min=5,max=50))
+
+class LoginSchema(Schema):
+    username = fields.Str(required=True, validate=validate.Length(min=5,max=50))
+    password = fields.Str(required=True, validate=validate.Length(min=5,max=50))
 
 class IncomeSchema(Schema):
     source = fields.Str(required=True, validate=validate.Length(max=100))
@@ -26,6 +35,41 @@ class ExpenseSchema(Schema):
 class CategorySchema(Schema):
     name = fields.Str(required=True, validate=validate.Length(max=50))
     description = fields.Str(required=True, validate=validate.Length(max=200))
+
+@app.route('/register', methods=['POST'])
+def regiser():
+    schema = RegistrationSchema()
+    try: 
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+    if User.query.filter.by(username=data['username']).first():
+        return jsonify({'message': 'Username already exists'}), 401
+
+    hashed_password = generate_password_hash(data['password'], method='sha256')
+
+    new_user = User(username=data['username'], password=hashed_password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message': 'User registered successfully'}), 201
+
+@app.route('/login', methods=['POST'])
+def login():
+    schema = LoginSchema()
+    try: 
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+    user = User.query.filter_by(username=data['username']).first()
+    if user is None:
+        return jsonify({'message': 'Invalid username or password'}), 401
+    if not user.check_password(data['password']):
+        return jsonify({'message': 'Invalid username or password'}), 401
+    access_token = create_access_token(identity=user.username)
+    return jsonify({'access_token' : access_token}), 200
+    
+    
 
 @app.route('/income', methods=['POST'])
 def add_income():
