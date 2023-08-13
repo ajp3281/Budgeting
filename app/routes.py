@@ -1,15 +1,43 @@
 from flask import request, jsonify
 from app import app,db
 from app.models import Income,Expenses,Category
-from datetime import datetime
+from marshmallow import Schema, fields, validate
+from datetime import datetime, date
+from marshmallow.exceptions import ValidationError
+
+def validate_date_range(value):
+    min_date = date(2000, 1, 1)
+    max_date = date.today()
+    if value < min_date or value > max_date:
+        raise ValidationError('Date must be between {} and {}'.format(min_date, max_date))
+
+class IncomeSchema(Schema):
+    source = fields.Str(required=True, validate=validate.Length(max=100))
+    amount = fields.Float(required=True, validate=validate.Range(min=0)) # No negative numbers
+    date = fields.Date(required=True, validate=validate_date_range) # Date range validation
+    frequency = fields.Str(required=False, validate=validate.OneOf(["Weekly", "Biweekly", "Monthly", "Yearly"])) # Enumeration
+
+class ExpenseSchema(Schema):
+    description = fields.Str(required=True, validate=validate.Length(max=100))
+    amount = fields.Float(required=True, validate=validate.Range(min=0))
+    date = fields.Date(required=True, validate=validate_date_range) 
+    category_id = fields.Str(required=True, validate=validate.Length(max=100))
+
+class CategorySchema(Schema):
+    name = fields.Str(required=True, validate=validate.Length(max=50))
+    description = fields.Str(required=True, validate=validate.Length(max=200))
 
 @app.route('/income', methods=['POST'])
 def add_income():
-    data = request.json
+    schema = IncomeSchema()
+    try:
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
+
     source = data['source']
     amount = data['amount']
-    date_string = data['date']
-    date = datetime.strptime(date_string, '%Y-%m-%d').date()
+    date = data['date']
     frequency = data.get('frequency') # Optional field
 
     income = Income(source=source, amount=amount, date=date, frequency=frequency)
@@ -58,17 +86,20 @@ def del_income(id):
     if income is None:
         return jsonify({'message': 'Income not found'}), 404
     db.session.delete(income)
-    db.session.commit
+    db.session.commit()
 
     return jsonify({'message': 'Income deleted successfully'}), 200
 
 @app.route('/expenses', methods=['POST'])
 def add_expenses():
-    data = request.json
+    schema = ExpenseSchema()
+    try:
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
     description= data['description']
     amount = data['amount']
-    date_string = data['date']
-    date = datetime.strptime(date_string, '%Y-%m-%d').date()
+    date = data['date']
     category_id = data.get('category_id') # Optional field
 
     expense = Expenses(description=description, amount=amount, date=date, category_id=category_id)
@@ -79,7 +110,7 @@ def add_expenses():
 
 @app.route('/expenses', methods=['GET'])
 def get_expenses():
-    expense = Expenses.query.all()
+    expenses = Expenses.query.all()
     expense_list = [{'description': expense.description, 'amount': expense.amount, 'date': expense.date.isoformat(), 'category': expense.category_id} for expense in expenses]
     return jsonify(expense_list), 200
 
@@ -102,16 +133,16 @@ def update_expense(id):
     if expense is None:
         return jsonify({'message': 'Expense not found'}), 404
     data = request.json
-    expense.description = data.get('source', expense.description)
+    expense.description = data.get('description', expense.description)
     expense.amount = data.get('amount', expense.amount)
     expense.date = data.get('date', expense.date)
-    expense.category = data.get('frequency', expense.category_id)
+    expense.category_id = data.get('category_id', expense.category_id)
 
     db.session.commit()
 
     return jsonify({'message': 'Expense updated successfully'}), 200
 
-@app.route('/expense/<int:id>', methods=['DELETE'])
+@app.route('/expenses/<int:id>', methods=['DELETE'])
 def del_expense(id):
     expense = Expenses.query.get(id)
     if expense is None:
@@ -123,13 +154,17 @@ def del_expense(id):
 
 @app.route('/category', methods=['POST'])
 def add_category():
-    data = request.json
+    schema = CategorySchema()
+    try:
+        data = schema.load(request.json)
+    except ValidationError as err:
+        return jsonify(err.messages), 400
     name= data['name']
     description = data['description']
     category_id = data.get('category_id') 
 
     category = Category(name=name, description=description, category_id=category_id)
-    db.session.add(Category)
+    db.session.add(category)
     db.session.commit()
 
     return jsonify({'message': 'Category added successfully'}), 201
@@ -170,7 +205,7 @@ def del_category(id):
     if category is None:
         return jsonify({'message': 'Category not found'}), 404
     db.session.delete(category)
-    db.session.commit
+    db.session.commit()
 
     return jsonify({'message': 'Category deleted successfully'}), 200
     
