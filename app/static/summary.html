@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monthly Summary</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Monthly Balance Summary</h1>
+  <div class="redirect-links">
+    <a href="/income.html">Income</a>
+    <a href="/expenses.html">Expenses</a>
+  </div>
+  <div id="summary">
+    <p>Total Monthly Income: <span id="totalIncome">0</span></p>
+    <p>Total Monthly Expenses: <span id="totalExpenses">0</span></p>
+    <p>Net Monthly Balance: <span id="monthlyBalance">0</span></p>
+  </div>
+
+  <button onclick="calculateSummary()">Calculate Summary</button>
+
+  <script src="/static/summary.js"></script>
+</body>
+</html>

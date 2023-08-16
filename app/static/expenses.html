@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Expense Tracker</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Expense Tracker</h1>
+  <div class="redirect-links">
+    <a href="/summary.html">Back to Summary</a>
+  <label>Description: <input type="text" id="description"></label>
+  <label>Amount: <input type="number" id="amount"></label>
+  <label>Date: <input type="date" id="date"></label>
+  <button onclick="addExpense()">Add Expense</button>
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Edit</th>
+        <th>Delete</th>
+      </tr>
+    </thead>
+    <tbody id="expenseTableBody">
+    </tbody>
+  </table>
+
+  <div id="editForm" style="display:none;">
+    <label for="editDescription">Description:</label>
+    <input type="text" id="editDescription" name="editDescription">
+    <label for="editAmount">Amount:</label>
+    <input type="number" id="editAmount" name="editAmount">
+    <label for="editDate">Date:</label>
+    <input type="date" id="editDate" name="editDate">
+    <button onclick="submitEdit()">Submit</button>
+    <button onclick="cancelEdit()">Cancel</button>
+  </div>
+
+  <script src="/static/expenses.js"></script>
+</body>
+</html>
